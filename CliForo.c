@@ -22,16 +22,19 @@
 #define SEM_SERVIMSG_NAME "ServiForoServiMsg"
 
 //ESTRUCTURA DE DATOS COMPARTIDA
+struct cmd {
+	int num;
+	/*
+	Comandos:
+	1 - Registrar Cliente
+	2 - List
+	3 - Write
+	4 - Read
+	*/ 
+	char param[MAX_COMAND];
+};
 struct shared_data {
-    int cmd;
-    /*Comandos:
-    1 - Registrar Cliente
-    2 - Salir cliente
-    3 - List
-    4 - Write
-    5 - Read
-    */ 
-    char cmdParam[MAX_COMAND];
+    struct cmd CliCmd;
     char serviMsg[MAX_COMAND];
 };
 
