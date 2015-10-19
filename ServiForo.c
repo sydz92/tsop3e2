@@ -45,9 +45,9 @@ struct shared_data {
 //ESTRUCTURA DEL SERVIDOR
 //Array de clientes
 char clientes[MAX_CLIENTES][MAX_NAME];
-int cliCount = -1;
+int cliCount = 0;
 
-//FUNCION QUE LIBERA LOS RECURSOS
+//DEVUELVE TRU SI ENCONTRO AL USUSRIO name
 int existUser(const char name[MAX_NAME])
 {
 	int res = 0;
@@ -66,9 +66,11 @@ int existUser(const char name[MAX_NAME])
 //FUNCION QUE LIBERA LOS RECURSOS
 void unlinks()
 {
-	shm_unlink(SEM_CLI_NAME);
 	shm_unlink(SHM_PATH);
+	sem_unlink(SEM_CLI_NAME);
 	sem_unlink(SEM_INSTANCE_NAME);
+	sem_unlink(SEM_CMD_NAME);
+	sem_unlink(SEM_SERVIMSG_NAME);
 }
 
 int main()
@@ -110,16 +112,14 @@ int main()
     }
    	//Inicializar estructura
    	shared_msg->cmd = 0;
-   	strcpy(shared_msg->cmdParam, "nnn");
-   	strcpy(shared_msg->serviMsg, "nnn");
+   	strcpy(shared_msg->cmdParam, "");
+   	strcpy(shared_msg->serviMsg, "");
 
     //Creando semaforo para clientes
     sem_open(SEM_CLI_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_t * sem_cmd_id;
-    sem_t * sem_cliParam_id;
     sem_t * sem_ServiMsg_id;
     sem_cmd_id = sem_open(SEM_CMD_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
-    sem_cliParam_id = sem_open(SEM_CLIPARAM_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_ServiMsg_id = sem_open(SEM_SERVIMSG_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
 	//FORK
@@ -127,10 +127,11 @@ int main()
     if (pid == 0)
     //PROCESO HIJO ATIENDE A LOS CLIENTES
     {
+    	char name[MAX_NAME];
         while (1)
 		{
 			sem_wait(sem_cmd_id);
-			if (shared_msg->cmd !=0)
+			if (shared_msg->cmd.num !=0)
 			//hay un comando
 			{
 
@@ -138,15 +139,12 @@ int main()
 				//Registrar Cliente
 				{
 					//obtener nombre
-					char name[MAX_NAME];
-					sem_wait(sem_cliParam_id);
-					strncpy(name, shared_msg->cmdParam, MAX_NAME);
-					strcpy(shared_msg->cmdParam, "nnn");
-					sem_post(sem_cliParam_id);
+					strcpy(name, shared_msg->cmd.param);
+					strcpy(shared_msg->cmd.param, "");
 
 					if (cliCount + 1 > MAX_CLIENTES)
 					{
-						//ya existe
+						//maximo de usuarios superado
 						sem_wait(sem_ServiMsg_id);
 						strcpy(shared_msg->serviMsg, "Ya no se permiten mas usuarios\n");
 						sem_post(sem_ServiMsg_id);
@@ -162,14 +160,14 @@ int main()
 					{
 						//Exito
 						cliCount++;
-						strcpy(clientes[cliCount], name);
+						strcpy(clientes[cliCount-1], name);
 
 						sem_wait(sem_ServiMsg_id);
-						strcpy(shared_msg->serviMsg, "ok");
+						strcpy(shared_msg->serviMsg, "Cliente registado correctamente");
 						sem_post(sem_ServiMsg_id);
 					}
 					//resetar comando
-					shared_msg->cmd = 0;
+					shared_msg->cmd.num = 0;
 				}
 			}
 			sem_post(sem_cmd_id);

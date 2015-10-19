@@ -15,10 +15,9 @@
 #define MAX_NAME 50
 
 //NOMBRES DE RECURSOS COMPARTIDOS
-#define SHM_PATH         "/ServiForoSharedMemory"
+#define SHM_PATH "/ServiForoSharedMemory"
 #define SEM_CLI_NAME "ServiForoCliSem"
 #define SEM_CMD_NAME "ServiForoCmd"
-#define SEM_CLIPARAM_NAME "ServiForoCliParam"
 #define SEM_SERVIMSG_NAME "ServiForoServiMsg"
 
 //ESTRUCTURA DE DATOS COMPARTIDA
@@ -41,7 +40,10 @@ struct shared_data {
 //FUNCION QUE LIBERA LOS RECURSOS
 void unlinks()
 {
-	shm_unlink(SEM_CLI_NAME);
+	shm_unlink(SHM_PATH);
+	sem_unlink(SEM_CLI_NAME);
+	sem_unlink(SEM_CMD_NAME);
+	sem_unlink(SEM_SERVIMSG_NAME);
 }
 
 int main(int argc, char * argv[])
@@ -49,9 +51,8 @@ int main(int argc, char * argv[])
 	//COMPROBAR QUE EL SERVIDOR ESTA LEVANTADO
 	sem_t * sem_cli_id = sem_open(SEM_CLI_NAME, 0, 600, 1);
     sem_t * sem_cmd_id = sem_open(SEM_CMD_NAME, 0, 600, 1);
-    sem_t * sem_cliParam_id = sem_open(SEM_CLIPARAM_NAME, 0, 600, 1);
     sem_t * sem_ServiMsg_id = sem_open(SEM_SERVIMSG_NAME, 0, 600, 1);
-	if ((sem_cli_id == SEM_FAILED)  || (sem_cmd_id == SEM_FAILED) || (sem_cliParam_id == SEM_FAILED) || (sem_ServiMsg_id == SEM_FAILED))
+	if ((sem_cli_id == SEM_FAILED)  || (sem_cmd_id == SEM_FAILED) || (sem_ServiMsg_id == SEM_FAILED))
 	{
 		printf("Error, no exite una instancia de ServiForo en ejecución\n\n");
   		unlinks();
@@ -64,8 +65,8 @@ int main(int argc, char * argv[])
     int shared_seg_size = (1 * sizeof(struct shared_data)); 
     //Estructura compartida
     struct shared_data *shared_msg;
-     //Creando el objeto de memoria compartido /* creating the shared memory object    --  shm_open()  */
-    shmfd = shm_open("/ServiForoSharedMemory", O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
+     //Creando el objeto de memoria compartido 
+    shmfd = shm_open(SHM_PATH, O_RDWR, S_IRWXU | S_IRWXG);
     if (shmfd < 0)
     {
         perror("Error en shm_open()");
@@ -97,31 +98,29 @@ int main(int argc, char * argv[])
 		//obtener semaforo de cliente
 		sem_wait(sem_cli_id);
 		
-		//poner nombre como parametro
-		sem_wait(sem_cliParam_id);
-		strcpy(shared_msg->cmdParam, name);
-		sem_post(sem_cliParam_id);
-
 		//Llamar comando Registrar Cliente
 		sem_wait(sem_cmd_id);
-		shared_msg->cmd=1;
+
+		strcpy(shared_msg->cmdParam, name);
+		shared_msg->cmd.num=1;
+		
 		sem_post(sem_cmd_id);
 
 		//Esperar por respuesta
 		while(1)
 		{
 			sem_wait(sem_ServiMsg_id);
-			if (strncmp(shared_msg->serviMsg,"nnn", 3))
+			if (strcmp(shared_msg->serviMsg,""))
 			{
-				if (!strncmp(shared_msg->serviMsg,"ok", 2))
+				if (!strcmp(shared_msg->serviMsg,"ok"))
 				{
-					strcpy(shared_msg->serviMsg, "nnn");
+					strcpy(shared_msg->serviMsg, "");
 					break;	
 				}
 				else 
 				{
 					printf("%s", shared_msg->serviMsg);
-					strcpy(shared_msg->serviMsg, "nnn");
+					strcpy(shared_msg->serviMsg, "");
 					unlinks();
 					return -1;
 				}
