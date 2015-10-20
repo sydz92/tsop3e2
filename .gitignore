@@ -32,3 +32,5 @@ CliForo
 
 # Debug files
 *.dSYM/
+
+.fuse_hidden*

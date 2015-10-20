@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #define MAX_COMAND 300
+#define MAX_LARGO_MENSAJE 200
 #define MAX_NAME 50
 
 //NOMBRES DE RECURSOS COMPARTIDOS
@@ -26,15 +27,17 @@ struct cmd {
 	/*
 	Comandos:
 	1 - Registrar Cliente
-	2 - List
-	3 - Write
-	4 - Read
+	2 - Borrar cliente
+	3 - List
+	4 - Write
+	5 - Read
 	*/ 
-	char param[MAX_COMAND];
+	char param[MAX_LARGO_MENSAJE];
+	char cli[MAX_NAME];
 };
 struct shared_data {
     struct cmd CliCmd;
-    char serviMsg[MAX_COMAND];
+    char serviMsg[MAX_LARGO_MENSAJE];
 };
 
 //FILE DESCRIPTORS
@@ -109,7 +112,7 @@ int main(int argc, char * argv[])
 		//Llamar comando Registrar Cliente
 		sem_wait(sem_cmd_id);
 
-		strcpy(shared_msg->CliCmd.param, name);
+		strcpy(shared_msg->CliCmd.cli, name);
 		shared_msg->CliCmd.num=1;
 
 		sem_post(sem_cmd_id);
@@ -117,6 +120,7 @@ int main(int argc, char * argv[])
 		//Esperar por respuesta
 		while(1)
 		{
+			perror(shared_msg->serviMsg);
 			sem_wait(sem_ServiMsg_id);
 			if (strcmp(shared_msg->serviMsg,"."))
 			//el servidor me reopondio

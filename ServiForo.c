@@ -14,8 +14,8 @@
 //CONSTANTES CONFIGURABLES
 #define MAX_MENSAJES_EN_FORO 100
 #define MAX_CLIENTES 20
-#define MAX_LARGO_MENSAJE 200
 #define MAX_COMAND 300
+#define MAX_LARGO_MENSAJE 200
 #define MAX_NAME 10
 
 #define SEM_INSTANCE_NAME "ServiForoInstanceSem"
@@ -31,18 +31,20 @@ struct cmd {
 	/*
 	Comandos:
 	1 - Registrar Cliente
-	2 - List
-	3 - Write
-	4 - Read
+	2 - Borrar cliente
+	3 - List
+	4 - Write
+	5 - Read
 	*/ 
-	char param[MAX_COMAND];
+	char param[MAX_LARGO_MENSAJE];
+	char cli[MAX_NAME];
 };
 struct shared_data {
     struct cmd CliCmd;
-    char serviMsg[MAX_COMAND];
+    char serviMsg[MAX_LARGO_MENSAJE];
 };
 
-//ESTRUCTURA DEL SERVIDOR
+//ESTRUCTURAS DEL SERVIDOR
 //Array de clientes
 char clientes[MAX_CLIENTES][MAX_NAME];
 int cliCount = 0;
@@ -62,6 +64,25 @@ int existUser(const char name[MAX_NAME])
 		i++;
 	}
 	return res;
+}
+
+//DEVUELVE TRU SI ENCONTRO AL USUSRIO name
+void removeUser(const char name[MAX_NAME])
+{
+	int i = 0;
+	while (i < cliCount)
+	{
+		if (!strcmp(name,clientes[i]))
+		{
+			break;
+		}
+		i++;
+	}
+	while (i < (cliCount -1) )
+	{
+		strcpy(clientes[i], clientes[i+1]);
+	}
+	cliCount--;
 }
 
 //FUNCION QUE LIBERA LOS RECURSOS
@@ -114,6 +135,7 @@ int main()
    	//Inicializar estructura
    	shared_msg->CliCmd.num = 0;
    	strcpy(shared_msg->CliCmd.param, "");
+   	strcpy(shared_msg->CliCmd.cli, "");
    	strcpy(shared_msg->serviMsg, ".");
 
     //Creando semaforo para clientes
@@ -140,8 +162,8 @@ int main()
 				//Registrar Cliente
 				{
 					//obtener nombre
-					strcpy(name, shared_msg->CliCmd.param);
-					strcpy(shared_msg->CliCmd.param, "");
+					strcpy(name, shared_msg->CliCmd.cli);
+					strcpy(shared_msg->CliCmd.cli, "");
 
 					if (cliCount + 1 > MAX_CLIENTES)
 					{
