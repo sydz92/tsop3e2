@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #define MAX_COMAND 300
+#define MAX_LARGO_MENSAJE 200
 #define MAX_NAME 50
 
 //NOMBRES DE RECURSOS COMPARTIDOS
@@ -26,15 +27,16 @@ struct cmd {
 	/*
 	Comandos:
 	1 - Registrar Cliente
-	2 - List
-	3 - Write
-	4 - Read
+	2 - Borrar cliente
+	3 - List
+	4 - Write
+	5 - Read
 	*/ 
 	char param[MAX_COMAND];
 };
 struct shared_data {
     struct cmd CliCmd;
-    char serviMsg[MAX_COMAND];
+    char serviMsg[MAX_LARGO_MENSAJE];
 };
 
 //FILE DESCRIPTORS
@@ -160,6 +162,18 @@ int main(int argc, char * argv[])
 		//COMANDO EXIT
 		if (!strncmp(comand,"exit", 4))
 		{
+			printf("Saliendo...\n");
+			
+			sem_wait(sem_cli_id);
+			//Llamar comando Registrar Cliente
+			sem_wait(sem_cmd_id);
+
+			strcpy(shared_msg->CliCmd.param, name);
+			shared_msg->CliCmd.num=2;
+
+			sem_post(sem_cmd_id);
+			sem_post(sem_cli_id);
+			
 			//SALIR
 			printf("Hasta pronto!\n");
 			before_return();
