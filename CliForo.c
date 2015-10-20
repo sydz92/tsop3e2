@@ -32,8 +32,7 @@ struct cmd {
 	4 - Write
 	5 - Read
 	*/ 
-	char param[MAX_LARGO_MENSAJE];
-	char cli[MAX_NAME];
+	char param[MAX_COMAND];
 };
 struct shared_data {
     struct cmd CliCmd;
@@ -112,7 +111,7 @@ int main(int argc, char * argv[])
 		//Llamar comando Registrar Cliente
 		sem_wait(sem_cmd_id);
 
-		strcpy(shared_msg->CliCmd.cli, name);
+		strcpy(shared_msg->CliCmd.param, name);
 		shared_msg->CliCmd.num=1;
 
 		sem_post(sem_cmd_id);
@@ -120,7 +119,6 @@ int main(int argc, char * argv[])
 		//Esperar por respuesta
 		while(1)
 		{
-			perror(shared_msg->serviMsg);
 			sem_wait(sem_ServiMsg_id);
 			if (strcmp(shared_msg->serviMsg,"."))
 			//el servidor me reopondio
@@ -164,6 +162,18 @@ int main(int argc, char * argv[])
 		//COMANDO EXIT
 		if (!strncmp(comand,"exit", 4))
 		{
+			printf("Saliendo...\n");
+			
+			sem_wait(sem_cli_id);
+			//Llamar comando Registrar Cliente
+			sem_wait(sem_cmd_id);
+
+			strcpy(shared_msg->CliCmd.param, name);
+			shared_msg->CliCmd.num=2;
+
+			sem_post(sem_cmd_id);
+			sem_post(sem_cli_id);
+			
 			//SALIR
 			printf("Hasta pronto!\n");
 			before_return();

@@ -36,8 +36,7 @@ struct cmd {
 	4 - Write
 	5 - Read
 	*/ 
-	char param[MAX_LARGO_MENSAJE];
-	char cli[MAX_NAME];
+	char param[MAX_COMAND];
 };
 struct shared_data {
     struct cmd CliCmd;
@@ -135,7 +134,6 @@ int main()
    	//Inicializar estructura
    	shared_msg->CliCmd.num = 0;
    	strcpy(shared_msg->CliCmd.param, "");
-   	strcpy(shared_msg->CliCmd.cli, "");
    	strcpy(shared_msg->serviMsg, ".");
 
     //Creando semaforo para clientes
@@ -162,8 +160,8 @@ int main()
 				//Registrar Cliente
 				{
 					//obtener nombre
-					strcpy(name, shared_msg->CliCmd.cli);
-					strcpy(shared_msg->CliCmd.cli, "");
+					strcpy(name, shared_msg->CliCmd.param);
+					strcpy(shared_msg->CliCmd.param, "");
 
 					if (cliCount + 1 > MAX_CLIENTES)
 					{
@@ -191,6 +189,17 @@ int main()
 					}
 					//resetar comando
 					shared_msg->CliCmd.num = 0;
+				} 
+				else if (shared_msg->CliCmd.num == 2)
+				{
+					//obtener nombre
+					strcpy(name, shared_msg->CliCmd.param);
+					strcpy(shared_msg->CliCmd.param, "");
+					//quitar de la lista de clientes
+					removeUser(name);
+					
+					//resetar comando
+					shared_msg->CliCmd.num = 0;
 				}
 			}
 			sem_post(sem_cmd_id);
@@ -213,6 +222,8 @@ int main()
 			{
 				printf("Apagando el servidor...\n");
 				//Esperar clientes
+				while(cliCount>0);
+
 				printf("Hasta pronto!\n");
 
 				//SALIR
