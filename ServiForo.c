@@ -46,14 +46,14 @@ struct shared_data {
 //ESTRUCTURAS DEL SERVIDOR
 //Array de clientes
 char clientes[MAX_CLIENTES][MAX_NAME];
-int cliCount = 0;
+int * cliCount;
 
 //DEVUELVE TRU SI ENCONTRO AL USUSRIO name
 int existUser(const char name[MAX_NAME])
 {
 	int res = 0;
 	int i = 0;
-	while (i < cliCount)
+	while (i < (*cliCount))
 	{
 		if (!strcmp(name,clientes[i]))
 		{
@@ -69,7 +69,7 @@ int existUser(const char name[MAX_NAME])
 void removeUser(const char name[MAX_NAME])
 {
 	int i = 0;
-	while (i < cliCount)
+	while (i < (*cliCount))
 	{
 		if (!strcmp(name,clientes[i]))
 		{
@@ -77,11 +77,11 @@ void removeUser(const char name[MAX_NAME])
 		}
 		i++;
 	}
-	while (i < (cliCount -1) )
+	while (i < ((*cliCount) -1) )
 	{
 		strcpy(clientes[i], clientes[i+1]);
 	}
-	cliCount--;
+	(*cliCount)--;
 }
 
 //FUNCION QUE LIBERA LOS RECURSOS
@@ -125,7 +125,7 @@ int main()
     //Ajustando el tama;o del mapeo al tama;o de la estructura
     ftruncate(shmfd, shared_seg_size);
     //Solicitando el segmento compartido
-    shared_msg = (struct shared_data *)mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmfd, 0);
+    shared_msg = (struct shared_data *) mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmfd, 0);
     if (shared_msg == NULL)
     {
         perror("Error en mmap()");
@@ -142,6 +142,10 @@ int main()
     sem_t * sem_ServiMsg_id;
     sem_cmd_id = sem_open(SEM_CMD_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     sem_ServiMsg_id = sem_open(SEM_SERVIMSG_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
+
+    //COMPARTIR MEMORIA ENTRE PADRE E HIJO
+    cliCount = (int *) mmap(NULL, sizeof(int *), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+    (*cliCount) = 0;
 
 	//FORK
     pid_t pid = fork();
@@ -163,7 +167,7 @@ int main()
 					strcpy(name, shared_msg->CliCmd.param);
 					strcpy(shared_msg->CliCmd.param, "");
 
-					if (cliCount + 1 > MAX_CLIENTES)
+					if ((*cliCount) + 1 > MAX_CLIENTES)
 					{
 						//maximo de usuarios superado
 						sem_wait(sem_ServiMsg_id);
@@ -180,8 +184,8 @@ int main()
 					else
 					{
 						//Exito
-						cliCount++;
-						strcpy(clientes[cliCount-1], name);
+						(*cliCount)++;
+						strcpy(clientes[(*cliCount)-1], name);
 
 						sem_wait(sem_ServiMsg_id);
 						strcpy(shared_msg->serviMsg, "ok");
@@ -197,7 +201,7 @@ int main()
 					strcpy(shared_msg->CliCmd.param, "");
 					//quitar de la lista de clientes
 					removeUser(name);
-					
+
 					//resetar comando
 					shared_msg->CliCmd.num = 0;
 				}
@@ -221,8 +225,13 @@ int main()
 			//COMANDO EXIT
 			{
 				printf("Apagando el servidor...\n");
+				
+				/*
+				* COMPARTIR MEMORIA ENTRE EL PADRE Y EL HIJO
+				*/
+
 				//Esperar clientes
-				while(cliCount>0);
+				while((*cliCount)>0);
 
 				printf("Hasta pronto!\n");
 
