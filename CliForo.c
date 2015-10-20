@@ -37,30 +37,38 @@ struct shared_data {
     char serviMsg[MAX_COMAND];
 };
 
+//FILE DESCRIPTORS
+sem_t * sem_cli_id;
+sem_t * sem_cmd_id;
+sem_t * sem_ServiMsg_id;
+int shmfd;
+
 //FUNCION QUE LIBERA LOS RECURSOS
-void unlinks()
+void before_return()
 {
-	shm_unlink(SHM_PATH);
+	/*shm_unlink(SHM_PATH);
 	sem_unlink(SEM_CLI_NAME);
 	sem_unlink(SEM_CMD_NAME);
-	sem_unlink(SEM_SERVIMSG_NAME);
+	sem_unlink(SEM_SERVIMSG_NAME);*/
+	close(shmfd);
+	sem_close(sem_cli_id);
+	sem_close(sem_cmd_id);
+	sem_close(sem_ServiMsg_id);
 }
 
 int main(int argc, char * argv[])
 {
 	//COMPROBAR QUE EL SERVIDOR ESTA LEVANTADO
-	sem_t * sem_cli_id = sem_open(SEM_CLI_NAME, 0, 600, 1);
-    sem_t * sem_cmd_id = sem_open(SEM_CMD_NAME, 0, 600, 1);
-    sem_t * sem_ServiMsg_id = sem_open(SEM_SERVIMSG_NAME, 0, 600, 1);
+	sem_cli_id = sem_open(SEM_CLI_NAME, 0, 600, 1);
+    sem_cmd_id = sem_open(SEM_CMD_NAME, 0, 600, 1);
+    sem_ServiMsg_id = sem_open(SEM_SERVIMSG_NAME, 0, 600, 1);
 	if ((sem_cli_id == SEM_FAILED)  || (sem_cmd_id == SEM_FAILED) || (sem_ServiMsg_id == SEM_FAILED))
 	{
 		printf("Error, no exite una instancia de ServiForo en ejecución\n\n");
-  		unlinks();
+  		before_return();
   		return -1;
 	}
-	
-	//File desciptor
-	int shmfd;
+
 	//Tama;o de la estructura
     int shared_seg_size = (1 * sizeof(struct shared_data)); 
     //Estructura compartida
@@ -70,7 +78,7 @@ int main(int argc, char * argv[])
     if (shmfd < 0)
     {
         perror("Error en shm_open()");
-        unlinks();
+        before_return();
   		return -1;
     }
     //Ajustando el tama;o del mapeo al tama;o de la estructura
@@ -80,7 +88,7 @@ int main(int argc, char * argv[])
     if (shared_msg == NULL)
     {
        	printf("Error, no exite una instancia de ServiForo en ejecución\n\n");
-        unlinks();
+        before_return();
         return -1;
     }
 
@@ -89,7 +97,7 @@ int main(int argc, char * argv[])
 	if (argc == 1)
 	{
 		printf("Debe ingresar un nombre de usuario\n\n");
-		unlinks();
+		before_return();
 		return -1;
 	}
 	else 
@@ -101,37 +109,42 @@ int main(int argc, char * argv[])
 		//Llamar comando Registrar Cliente
 		sem_wait(sem_cmd_id);
 
-		strcpy(shared_msg->cmdParam, name);
-		shared_msg->cmd.num=1;
-		
+		strcpy(shared_msg->CliCmd.param, name);
+		shared_msg->CliCmd.num=1;
+
 		sem_post(sem_cmd_id);
 
 		//Esperar por respuesta
 		while(1)
 		{
 			sem_wait(sem_ServiMsg_id);
-			if (strcmp(shared_msg->serviMsg,""))
+			if (strcmp(shared_msg->serviMsg,"."))
+			//el servidor me reopondio
 			{
 				if (!strcmp(shared_msg->serviMsg,"ok"))
+				//exito
 				{
-					strcpy(shared_msg->serviMsg, "");
+					strcpy(shared_msg->serviMsg, ".");
+					sem_post(sem_ServiMsg_id);
 					break;	
 				}
 				else 
+				//algo fallo
 				{
 					printf("%s", shared_msg->serviMsg);
-					strcpy(shared_msg->serviMsg, "");
-					unlinks();
+					strcpy(shared_msg->serviMsg, ".");
+					
+					sem_post(sem_ServiMsg_id);
+					sem_post(sem_cli_id);
+					before_return();
 					return -1;
 				}
 			}
 			sem_post(sem_ServiMsg_id);
 		}
-
 		sem_post(sem_cli_id);
 	}
 	
-
 	//ARRANCAR EL CLIENTE
 	printf("Bienvenido a CliForo!\n");
 	printf("Su nombre es %s\n\n", name);
@@ -149,7 +162,7 @@ int main(int argc, char * argv[])
 		{
 			//SALIR
 			printf("Hasta pronto!\n");
-			unlinks();
+			before_return();
 			return 1;
 		} 
 		//COMANDO INVALIDO
@@ -160,6 +173,6 @@ int main(int argc, char * argv[])
 	}
 
 	//SALIR
-	unlinks();
+	before_return();
 	return 1;
 }

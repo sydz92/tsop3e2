@@ -59,12 +59,13 @@ int existUser(const char name[MAX_NAME])
 			res = 1;
 			break;
 		}
+		i++;
 	}
 	return res;
 }
 
 //FUNCION QUE LIBERA LOS RECURSOS
-void unlinks()
+void before_return()
 {
 	shm_unlink(SHM_PATH);
 	sem_unlink(SEM_CLI_NAME);
@@ -79,7 +80,7 @@ int main()
 	if (sem_open(SEM_INSTANCE_NAME, O_CREAT, 600, 1) == SEM_FAILED) 
 	{
 		printf("Ya existe una instancia de ServiForo en ejecución\n\n");
-  		unlinks();
+  		before_return();
   		return -1;
 	}
 	
@@ -98,7 +99,7 @@ int main()
     if (shmfd < 0)
     {
         perror("Error en shm_open()");
-        unlinks();
+        before_return();
         return -1;
     }
     //Ajustando el tama;o del mapeo al tama;o de la estructura
@@ -111,9 +112,9 @@ int main()
         return -1;
     }
    	//Inicializar estructura
-   	shared_msg->cmd = 0;
-   	strcpy(shared_msg->cmdParam, "");
-   	strcpy(shared_msg->serviMsg, "");
+   	shared_msg->CliCmd.num = 0;
+   	strcpy(shared_msg->CliCmd.param, "");
+   	strcpy(shared_msg->serviMsg, ".");
 
     //Creando semaforo para clientes
     sem_open(SEM_CLI_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
@@ -131,16 +132,16 @@ int main()
         while (1)
 		{
 			sem_wait(sem_cmd_id);
-			if (shared_msg->cmd.num !=0)
+			if (shared_msg->CliCmd.num !=0)
 			//hay un comando
 			{
 
-				if (shared_msg->cmd == 1)
+				if (shared_msg->CliCmd.num == 1)
 				//Registrar Cliente
 				{
 					//obtener nombre
-					strcpy(name, shared_msg->cmd.param);
-					strcpy(shared_msg->cmd.param, "");
+					strcpy(name, shared_msg->CliCmd.param);
+					strcpy(shared_msg->CliCmd.param, "");
 
 					if (cliCount + 1 > MAX_CLIENTES)
 					{
@@ -163,11 +164,11 @@ int main()
 						strcpy(clientes[cliCount-1], name);
 
 						sem_wait(sem_ServiMsg_id);
-						strcpy(shared_msg->serviMsg, "Cliente registado correctamente");
+						strcpy(shared_msg->serviMsg, "ok");
 						sem_post(sem_ServiMsg_id);
 					}
 					//resetar comando
-					shared_msg->cmd.num = 0;
+					shared_msg->CliCmd.num = 0;
 				}
 			}
 			sem_post(sem_cmd_id);
@@ -193,7 +194,7 @@ int main()
 				printf("Hasta pronto!\n");
 
 				//SALIR
-				unlinks();
+				before_return();
 				return 1;
 			} 
 			else 
@@ -207,12 +208,12 @@ int main()
     //FALLO EL FORK SALGO
     {    
         printf("Error en la ejecución de fork().\n");
-        unlinks();
+        before_return();
         return 1;
     }
 
 	
     //SALIR
-	unlinks();
-	return 1;
+	//before_return();
+	//return 1;
 }
