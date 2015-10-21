@@ -45,6 +45,30 @@ sem_t * sem_cmd_id;
 sem_t * sem_ServiMsg_id;
 int shmfd;
 
+//OBTENER EL RESTO DEL COMANDO
+void getRest(char comand[MAX_COMAND]){
+	int i = 0;
+	while (i < MAX_COMAND)
+	{
+		if (comand[i] == ' '){
+			break;
+		}
+		i++;
+	}
+	if (comand[i] == ' '){
+		int j = 0;
+		while (j < (MAX_COMAND-i-1))
+		{
+			comand[j] = comand[j+i+1];
+			j++;
+		}
+	}
+	else
+	{
+		strcpy(comand, "");
+	}
+}
+
 //FUNCION QUE LIBERA LOS RECURSOS
 void before_return()
 {
@@ -178,6 +202,55 @@ int main(int argc, char * argv[])
 			printf("Hasta pronto!\n");
 			before_return();
 			return 1;
+		}
+		else if (!strncmp(comand,"write", 5))
+		{
+			//obtener semaforo de cliente
+			sem_wait(sem_cli_id);
+			
+			//Llamar comando Registrar Cliente
+			sem_wait(sem_cmd_id);
+			//Agregar el nombre del cliente
+			strcpy(shared_msg->CliCmd.param, name);
+
+			//agregar mensaje
+			getRest(comand);
+			strcat(shared_msg->CliCmd.param, " ");
+			strcat(shared_msg->CliCmd.param, comand);
+
+			shared_msg->CliCmd.num=4;
+
+			sem_post(sem_cmd_id);
+
+			//Esperar por respuesta
+			while(1)
+			{
+				sem_wait(sem_ServiMsg_id);
+				if (strcmp(shared_msg->serviMsg,"."))
+				//el servidor me reopondio
+				{
+					if (!strcmp(shared_msg->serviMsg,"ok"))
+					//exito
+					{
+						strcpy(shared_msg->serviMsg, ".");
+						sem_post(sem_ServiMsg_id);
+						break;	
+					}
+					else 
+					//algo fallo
+					{
+						printf("%s", shared_msg->serviMsg);
+						strcpy(shared_msg->serviMsg, ".");
+						
+						sem_post(sem_ServiMsg_id);
+						sem_post(sem_cli_id);
+						before_return();
+						return -1;
+					}
+				}
+				sem_post(sem_ServiMsg_id);
+			}
+			sem_post(sem_cli_id);
 		} 
 		//COMANDO INVALIDO
 		else 

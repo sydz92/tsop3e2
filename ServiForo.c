@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
 
 //CONSTANTES CONFIGURABLES
 #define MAX_MENSAJES_EN_FORO 100
@@ -47,6 +48,14 @@ struct shared_data {
 //Array de clientes
 char clientes[MAX_CLIENTES][MAX_NAME];
 int * cliCount;
+int * comingOut;
+struct message
+{
+	char name[MAX_NAME];
+	char msg[MAX_LARGO_MENSAJE];
+};
+struct message messages[MAX_MENSAJES_EN_FORO];
+int msgCount = 0;
 
 //DEVUELVE TRU SI ENCONTRO AL USUSRIO name
 int existUser(const char name[MAX_NAME])
@@ -82,6 +91,43 @@ void removeUser(const char name[MAX_NAME])
 		strcpy(clientes[i], clientes[i+1]);
 	}
 	(*cliCount)--;
+}
+
+//OBTENER EL RESTO DEL PARAMETRO
+void getRest(char param[MAX_COMAND]){
+	int i = 0;
+	while (i < MAX_COMAND)
+	{
+		if (param[i] == ' '){
+			break;
+		}
+		i++;
+	}
+	if (param[i] == ' '){
+		int j = 0;
+		while (j < (MAX_COMAND-i-1))
+		{
+			param[j] = param[j+i+1];
+			j++;
+		}
+	}
+	else
+	{
+		strcpy(param, "");
+	}
+}
+
+//OBTENER EL NOMBRE DEL PARAMETRO
+void getName(char param[MAX_COMAND], char name[MAX_NAME]){
+	int i = 0;
+	while (i < MAX_COMAND)
+	{
+		if (param[i] == ' '){
+			break;
+		}
+		i++;
+	}
+	strncpy(name, param, i);
 }
 
 //FUNCION QUE LIBERA LOS RECURSOS
@@ -146,6 +192,8 @@ int main()
     //COMPARTIR MEMORIA ENTRE PADRE E HIJO
     cliCount = (int *) mmap(NULL, sizeof(int *), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
     (*cliCount) = 0;
+    comingOut = (int *) mmap(NULL, sizeof(int *), PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+    (*comingOut) = 0;
 
 	//FORK
     pid_t pid = fork();
@@ -195,12 +243,51 @@ int main()
 					shared_msg->CliCmd.num = 0;
 				} 
 				else if (shared_msg->CliCmd.num == 2)
+				//BORRAR CLIENTE
 				{
 					//obtener nombre
 					strcpy(name, shared_msg->CliCmd.param);
 					strcpy(shared_msg->CliCmd.param, "");
 					//quitar de la lista de clientes
 					removeUser(name);
+
+					//resetar comando
+					shared_msg->CliCmd.num = 0;
+				}
+				else if (shared_msg->CliCmd.num == 4)
+				//ESCRIBIR MENSAJE
+				{
+					
+					if ((*comingOut))
+					{
+						//maximo de usuarios superado
+						sem_wait(sem_ServiMsg_id);
+						strcpy(shared_msg->serviMsg, "No se permiten nuevas operaciones con el foro\n");
+						sem_post(sem_ServiMsg_id);
+					}
+					else
+					{
+						
+						//guardar mensaje
+						msgCount++;
+						getName(shared_msg->CliCmd.param, name);
+						strcpy(messages[msgCount-1].name, name);
+
+						getRest(shared_msg->CliCmd.param);
+						strcpy(messages[msgCount-1].msg, shared_msg->CliCmd.param);
+
+						
+						//Print debug
+						char buffer[100];
+						sprintf(buffer, "Se ha creado el mensaje numero %d en el foro", msgCount);
+						errno = 0;
+						perror(buffer);
+
+						//responder al cliente
+						sem_wait(sem_ServiMsg_id);
+						strcpy(shared_msg->serviMsg, "ok");
+						sem_post(sem_ServiMsg_id);
+					}
 
 					//resetar comando
 					shared_msg->CliCmd.num = 0;
@@ -215,26 +302,24 @@ int main()
     	printf("Bienvenido a ServiForo!\n\n");
        	//ESPERAR POR UN COMANDO
         char comand[MAX_COMAND] = "";
+		
+		printf("Ingrese exit para salir\n");
 		while (1)
 		{
 			//LEER COMANDO
-			printf(">> ");
 			fgets(comand, MAX_COMAND , stdin);
 
 			if (!strncmp(comand,"exit", 4))
 			//COMANDO EXIT
 			{
-				printf("Apagando el servidor...\n");
+				printf("Esperando que salgan todos los clientes...\n");
 				
-				/*
-				* COMPARTIR MEMORIA ENTRE EL PADRE Y EL HIJO
-				*/
-
+				//Saliendo igual true
+				(*comingOut) = 1;
 				//Esperar clientes
 				while((*cliCount)>0);
 
 				printf("Hasta pronto!\n");
-
 				//SALIR
 				before_return();
 				return 1;
