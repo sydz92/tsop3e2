@@ -260,9 +260,9 @@ int main()
 					
 					if ((*comingOut))
 					{
-						//maximo de usuarios superado
+						//Saliendo
 						sem_wait(sem_ServiMsg_id);
-						strcpy(shared_msg->serviMsg, "No se permiten nuevas operaciones con el foro\n");
+						strcpy(shared_msg->serviMsg, "No se permiten nuevas operaciones en el foro\n");
 						sem_post(sem_ServiMsg_id);
 					}
 					else
@@ -286,6 +286,40 @@ int main()
 						//responder al cliente
 						sem_wait(sem_ServiMsg_id);
 						strcpy(shared_msg->serviMsg, "ok");
+						sem_post(sem_ServiMsg_id);
+					}
+
+					//resetar comando
+					shared_msg->CliCmd.num = 0;
+				}
+				else if (shared_msg->CliCmd.num == 3)
+				//LISTAR MENSAJES
+				{
+					
+					if ((*comingOut))
+					{
+						//Saliendo
+						sem_wait(sem_ServiMsg_id);
+						strcpy(shared_msg->serviMsg, "No se permiten nuevas operaciones en el foro\n");
+						sem_post(sem_ServiMsg_id);
+					}
+					else
+					{
+						//Imprimir lista
+						char msgaux[MAX_LARGO_MENSAJE];
+						strcpy(msgaux, "Todos los mensajes\n");
+						char buffer[MAX_NAME + 10];
+						int i = 0;
+						while (i <  msgCount)
+						{
+							sprintf(buffer, "%d - %s\n", i+1, messages[i].name);
+							strcat(msgaux, buffer);
+							i++;
+						}
+						
+						//responder al cliente
+						sem_wait(sem_ServiMsg_id);
+						strcpy(shared_msg->serviMsg, msgaux);
 						sem_post(sem_ServiMsg_id);
 					}
 
