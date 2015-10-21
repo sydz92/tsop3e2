@@ -326,6 +326,45 @@ int main()
 					//resetar comando
 					shared_msg->CliCmd.num = 0;
 				}
+				else if (shared_msg->CliCmd.num == 5)
+				//LEER MENSAJE
+				{
+					
+					if ((*comingOut))
+					{
+						//Saliendo
+						sem_wait(sem_ServiMsg_id);
+						strcpy(shared_msg->serviMsg, "No se permiten nuevas operaciones en el foro\n");
+						sem_post(sem_ServiMsg_id);
+					}
+					else
+					{
+						
+						//Obtener numero de mensaje
+						int mnum = atoi(shared_msg->CliCmd.param);
+
+						if ((mnum > 0) && (mnum <= msgCount))
+						//es un numero valido
+						{
+							char msgaux[MAX_LARGO_MENSAJE+MAX_NAME+10];
+							sprintf(msgaux, "%s: %s\n", messages[mnum-1].name, messages[mnum-1].msg);
+							//responder al cliente
+							sem_wait(sem_ServiMsg_id);	
+							strcpy(shared_msg->serviMsg, msgaux);
+							sem_post(sem_ServiMsg_id);	
+						}
+						else
+						{
+							sem_wait(sem_ServiMsg_id);	
+							strcpy(shared_msg->serviMsg, "Numero fuera de rango\n");
+							sem_post(sem_ServiMsg_id);
+						}
+						
+					}
+
+					//resetar comando
+					shared_msg->CliCmd.num = 0;
+				}
 			}
 			sem_post(sem_cmd_id);
 		}

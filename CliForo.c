@@ -277,6 +277,38 @@ int main(int argc, char * argv[])
 				sem_post(sem_ServiMsg_id);
 			}
 			sem_post(sem_cli_id);
+		}
+		else if (!strncmp(comand,"read", 4))
+		{
+			//obtener semaforo de cliente
+			sem_wait(sem_cli_id);
+			
+			//Llamar comando Registrar Cliente
+			sem_wait(sem_cmd_id);
+
+			//agregar mensaje
+			getRest(comand);
+			strcpy(shared_msg->CliCmd.param, comand);
+
+			shared_msg->CliCmd.num=5;
+
+			sem_post(sem_cmd_id);
+
+			//Esperar por respuesta
+			while(1)
+			{
+				sem_wait(sem_ServiMsg_id);
+				if (strcmp(shared_msg->serviMsg,"."))
+				//el servidor me reopondio
+				{
+					printf("%s", shared_msg->serviMsg);
+					strcpy(shared_msg->serviMsg, ".");
+					sem_post(sem_ServiMsg_id);
+					break;
+				}
+				sem_post(sem_ServiMsg_id);
+			}
+			sem_post(sem_cli_id);
 		} 
 		//COMANDO INVALIDO
 		else 
