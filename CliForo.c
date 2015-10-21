@@ -241,11 +241,8 @@ int main(int argc, char * argv[])
 					{
 						printf("%s", shared_msg->serviMsg);
 						strcpy(shared_msg->serviMsg, ".");
-						
 						sem_post(sem_ServiMsg_id);
-						sem_post(sem_cli_id);
-						before_return();
-						return -1;
+						break;
 					}
 				}
 				sem_post(sem_ServiMsg_id);
