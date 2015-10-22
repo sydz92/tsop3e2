@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <time.h>
 
 #define MAX_COMAND 300
 #define MAX_LARGO_MENSAJE 200
@@ -247,6 +248,11 @@ int main(int argc, char * argv[])
 				}
 				sem_post(sem_ServiMsg_id);
 			}
+			//Esperar para terminar el comando
+			printf("Esperando entre 1 a 5 segundos...\n");
+			sleep((rand() % 5)+1);
+			printf("Espera terminada\n");
+
 			sem_post(sem_cli_id);
 		}
 		else if (!strncmp(comand,"list", 4))
@@ -276,6 +282,11 @@ int main(int argc, char * argv[])
 				}
 				sem_post(sem_ServiMsg_id);
 			}
+			//Esperar para terminar el comando
+			printf("Esperando entre 1 a 5 segundos...\n");
+			sleep((rand() % 5)+1);
+			printf("Espera terminada\n");
+			
 			sem_post(sem_cli_id);
 		}
 		else if (!strncmp(comand,"read", 4))
@@ -308,6 +319,11 @@ int main(int argc, char * argv[])
 				}
 				sem_post(sem_ServiMsg_id);
 			}
+			//Esperar para terminar el comando
+			printf("Esperando entre 1 a 5 segundos...\n");
+			sleep((rand() % 5)+1);
+			printf("Espera terminada\n");
+
 			sem_post(sem_cli_id);
 		} 
 		//COMANDO INVALIDO
