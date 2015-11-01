@@ -57,7 +57,7 @@ struct message
 struct message messages[MAX_MENSAJES_EN_FORO];
 int msgCount = 0;
 
-//DEVUELVE TRU SI ENCONTRO AL USUSRIO name
+//DEVUELVE TRUE SI ENCONTRO AL USUSRIO name
 int existUser(const char name[MAX_NAME])
 {
 	int res = 0;
@@ -74,7 +74,7 @@ int existUser(const char name[MAX_NAME])
 	return res;
 }
 
-//DEVUELVE TRU SI ENCONTRO AL USUSRIO name
+//ELIMINAR AL USUSRIO name
 void removeUser(const char name[MAX_NAME])
 {
 	int i = 0;
@@ -168,7 +168,7 @@ int main()
         before_return();
         return -1;
     }
-    //Ajustando el tama;o del mapeo al tama;o de la estructura
+    //Ajustando el tamaño del mapeo al tamaño de la estructura
     ftruncate(shmfd, shared_seg_size);
     //Solicitando el segmento compartido
     shared_msg = (struct shared_data *) mmap(NULL, shared_seg_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmfd, 0);

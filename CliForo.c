@@ -17,7 +17,7 @@
 #define MAX_NAME 50
 
 //NOMBRES DE RECURSOS COMPARTIDOS
-#define SHM_PATH "/ServiForoSharedMemory"
+#define shm_openATH "/ServiForoSharedMemory"
 #define SEM_CLI_NAME "ServiForoCliSem"
 #define SEM_CMD_NAME "ServiForoCmd"
 #define SEM_SERVIMSG_NAME "ServiForoServiMsg"
@@ -190,7 +190,7 @@ int main(int argc, char * argv[])
 			printf("Saliendo...\n");
 			
 			sem_wait(sem_cli_id);
-			//Llamar comando Registrar Cliente
+			//Llamar des-registrar Cliente
 			sem_wait(sem_cmd_id);
 
 			strcpy(shared_msg->CliCmd.param, name);
@@ -209,7 +209,7 @@ int main(int argc, char * argv[])
 			//obtener semaforo de cliente
 			sem_wait(sem_cli_id);
 			
-			//Llamar comando Registrar Cliente
+			//Llamar comando write
 			sem_wait(sem_cmd_id);
 			//Agregar el nombre del cliente
 			strcpy(shared_msg->CliCmd.param, name);
@@ -260,7 +260,7 @@ int main(int argc, char * argv[])
 			//obtener semaforo de cliente
 			sem_wait(sem_cli_id);
 			
-			//Llamar comando Registrar Cliente
+			//Llamar comando list
 			sem_wait(sem_cmd_id);
 			
 			//indicar comnado
@@ -294,7 +294,7 @@ int main(int argc, char * argv[])
 			//obtener semaforo de cliente
 			sem_wait(sem_cli_id);
 			
-			//Llamar comando Registrar Cliente
+			//Llamar comando read
 			sem_wait(sem_cmd_id);
 
 			//agregar mensaje
